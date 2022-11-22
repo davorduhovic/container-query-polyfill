@@ -135,6 +135,7 @@ interface StyleSheetContext {
 }
 
 interface StyleSheetInstance {
+  hasCQ: boolean;
   source: string;
   dispose(): void;
   refresh(): void;
@@ -253,7 +254,7 @@ export function initializePolyfill(updateCallback: () => void) {
     const documentInstance = getOrCreateInstance(documentElement);
     let didSetDescriptors = false;
 
-    if (!signal?.aborted) {
+    if (!signal?.aborted && result.descriptors.length) {
       refresh = () => {
         if (!didSetDescriptors) {
           const {sheet} = node;
@@ -276,6 +277,7 @@ export function initializePolyfill(updateCallback: () => void) {
     }
 
     return {
+      hasCQ: result.descriptors.length > 0,
       source: result.source,
       dispose,
       refresh,
@@ -598,23 +600,21 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
           const response = await fetch(url.toString(), {signal});
           const source = await response.text();
 
-          const styleSheet = (this.styleSheet =
-            await this.context.registerStyleSheet({source, url, signal}));
-          const blob = new Blob([styleSheet.source], {
-            type: 'text/css',
-          });
+          const styleSheet = (this.styleSheet = await this.context.registerStyleSheet({source, url, signal}));
 
-          /**
-           * Even though it's a data URL, it may take several frames
-           * before the stylesheet is loaded. Additionally, the `onload`
-           * event isn't triggered on elements that have already loaded.
-           *
-           * Therefore, we use a dummy image to detect the right time
-           * to refresh.
-           */
-          const img = new Image();
-          img.onload = img.onerror = styleSheet.refresh;
-          img.src = node.href = URL.createObjectURL(blob);
+          // Only update style sheet if it has container queries.
+          if (styleSheet.hasCQ)
+          {
+            const blob = new Blob([styleSheet.source], {type: 'text/css'});
+
+            const loadFn = () => {
+              styleSheet.refresh();
+              node.removeEventListener('load', loadFn);
+            }
+
+            node.addEventListener('load', loadFn);
+            node.href = URL.createObjectURL(blob);
+          }
         });
       }
     }
