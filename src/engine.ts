@@ -600,17 +600,26 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
           const response = await fetch(url.toString(), {signal});
           const source = await response.text();
 
-          const styleSheet = (this.styleSheet = await this.context.registerStyleSheet({source, url, signal}));
+          const styleSheet = (this.styleSheet =
+            await this.context.registerStyleSheet({source, url, signal}));
 
           // Only update style sheet if it has container queries.
-          if (styleSheet.hasCQ)
-          {
+          if (styleSheet.hasCQ) {
             const blob = new Blob([styleSheet.source], {type: 'text/css'});
+
+            // Create a copy of the <link> element
+            const newNode = node.cloneNode(true) as HTMLLinkElement;
+
+            // Append the copied <link> element to the DOM immediately
+            document.head.appendChild(newNode);
 
             const loadFn = () => {
               styleSheet.refresh();
               node.removeEventListener('load', loadFn);
-            }
+
+              // Remove the original <link> element from the DOM
+              node.parentNode?.removeChild(newNode);
+            };
 
             node.addEventListener('load', loadFn);
             node.href = URL.createObjectURL(blob);
