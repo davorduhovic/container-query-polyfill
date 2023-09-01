@@ -607,18 +607,12 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
           if (styleSheet.hasCQ) {
             const blob = new Blob([styleSheet.source], {type: 'text/css'});
 
-            // Create a copy of the <link> element
             const newNode = node.cloneNode(true) as HTMLLinkElement;
-
-            // Append the copied <link> element to the DOM immediately
             document.head.appendChild(newNode);
 
             const loadFn = () => {
               styleSheet.refresh();
               node.removeEventListener('load', loadFn);
-
-              // Remove the original <link> element from the DOM
-              node.parentNode?.removeChild(newNode);
             };
 
             node.addEventListener('load', loadFn);
