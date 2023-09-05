@@ -600,20 +600,25 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
           const response = await fetch(url.toString(), {signal});
           const source = await response.text();
 
-          const styleSheet = (this.styleSheet = await this.context.registerStyleSheet({source, url, signal}));
+          const styleSheet = (this.styleSheet =
+            await this.context.registerStyleSheet({source, url, signal}));
 
           // Only update style sheet if it has container queries.
-          if (styleSheet.hasCQ)
-          {
+          if (styleSheet.hasCQ) {
             const blob = new Blob([styleSheet.source], {type: 'text/css'});
+
+            const newNode = node.cloneNode(true) as HTMLLinkElement;
+            newNode.setAttribute('id', 'cq-styles');
+            newNode.href = URL.createObjectURL(blob);
+            document.head.appendChild(newNode);
 
             const loadFn = () => {
               styleSheet.refresh();
               node.removeEventListener('load', loadFn);
-            }
+              node.remove();
+            };
 
             node.addEventListener('load', loadFn);
-            node.href = URL.createObjectURL(blob);
           }
         });
       }
