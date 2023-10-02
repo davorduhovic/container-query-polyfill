@@ -585,7 +585,7 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
   private context: StyleSheetContext;
   private controller: AbortController | null = null;
   private styleSheet: StyleSheetInstance | null = null;
-  private loadCount = 0;
+  private loadedNodesCount: number = 0; // Counter for loaded nodes
 
   constructor(node: HTMLLinkElement, context: StyleSheetContext) {
     super(node);
@@ -607,31 +607,33 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
           // Only update style sheet if it has container queries.
           if (styleSheet.hasCQ) {
             const blob = new Blob([styleSheet.source], {type: 'text/css'});
-
             const newNode = node.cloneNode(true) as HTMLLinkElement;
-            newNode.setAttribute('id', 'cq-styles-v9');
+            newNode.setAttribute('id', 'cq-styles-v9counter');
             document.head.appendChild(newNode);
 
             const loadFn = () => {
-              this.loadCount++;
-              if (this.loadCount === 2) {
+              // Increment the loaded nodes count
+              this.loadedNodesCount++;
+
+              // Check if both nodes have loaded
+              console.log('loadedNodesCount', this.loadedNodesCount);
+              if (this.loadedNodesCount === 2) {
+                console.log(
+                  'twoNodesLoaded calling refresh',
+                  this.loadedNodesCount
+                );
                 styleSheet.refresh();
+                // Remove event listener from the original node
+                node.removeEventListener('load', loadFn);
+                newNode.removeEventListener('load', loadFn);
               }
-              node.removeEventListener('load', loadFn);
             };
 
+            // Add event listeners to both nodes
             node.addEventListener('load', loadFn);
+            newNode.addEventListener('load', loadFn);
+
             node.href = URL.createObjectURL(blob);
-
-            const loadFnNewNode = () => {
-              this.loadCount++;
-              if (this.loadCount === 2) {
-                styleSheet.refresh();
-              }
-              newNode.removeEventListener('load', loadFnNewNode);
-            };
-
-            newNode.addEventListener('load', loadFnNewNode);
             newNode.href = URL.createObjectURL(blob);
           }
         });
@@ -645,6 +647,9 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
 
     this.styleSheet?.dispose();
     this.styleSheet = null;
+
+    // Reset the loaded nodes count
+    this.loadedNodesCount = 0;
   }
 }
 
