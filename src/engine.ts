@@ -607,11 +607,11 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
           if (styleSheet.hasCQ) {
             const blob = new Blob([styleSheet.source], {type: 'text/css'});
             const newNode = node.cloneNode(true) as HTMLLinkElement;
-            newNode.setAttribute('id', 'cq-styles-v9');
+            newNode.setAttribute('id', 'cq-styles-v9.4');
             document.head.appendChild(newNode);
 
             const loadFn = () => {
-              // styleSheet.refresh();
+              styleSheet.refresh();
               newNode.removeEventListener('load', loadFn);
             };
 
