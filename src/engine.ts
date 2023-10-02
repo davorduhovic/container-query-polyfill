@@ -585,6 +585,7 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
   private context: StyleSheetContext;
   private controller: AbortController | null = null;
   private styleSheet: StyleSheetInstance | null = null;
+  private loadCount = 0;
 
   constructor(node: HTMLLinkElement, context: StyleSheetContext) {
     super(node);
@@ -608,15 +609,29 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
             const blob = new Blob([styleSheet.source], {type: 'text/css'});
 
             const newNode = node.cloneNode(true) as HTMLLinkElement;
-            newNode.setAttribute('id', 'cq-styles');
+            newNode.setAttribute('id', 'cq-styles-v9');
             document.head.appendChild(newNode);
 
             const loadFn = () => {
-              styleSheet.refresh();
-              newNode.removeEventListener('load', loadFn);
+              this.loadCount++;
+              if (this.loadCount === 2) {
+                styleSheet.refresh();
+              }
+              node.removeEventListener('load', loadFn);
             };
 
-            newNode.addEventListener('load', loadFn);
+            node.addEventListener('load', loadFn);
+            node.href = URL.createObjectURL(blob);
+
+            const loadFnNewNode = () => {
+              this.loadCount++;
+              if (this.loadCount === 2) {
+                styleSheet.refresh();
+              }
+              newNode.removeEventListener('load', loadFnNewNode);
+            };
+
+            newNode.addEventListener('load', loadFnNewNode);
             newNode.href = URL.createObjectURL(blob);
           }
         });
