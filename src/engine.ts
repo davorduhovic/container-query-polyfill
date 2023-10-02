@@ -606,15 +606,17 @@ class LinkElementController extends NodeController<HTMLLinkElement> {
           // Only update style sheet if it has container queries.
           if (styleSheet.hasCQ) {
             const blob = new Blob([styleSheet.source], {type: 'text/css'});
+            const newNode = node.cloneNode(true) as HTMLLinkElement;
+            newNode.setAttribute('id', 'cq-styles-v9');
+            document.head.appendChild(newNode);
 
             const loadFn = () => {
-              console.log('noRefreshTest');
               // styleSheet.refresh();
-              node.removeEventListener('load', loadFn);
+              newNode.removeEventListener('load', loadFn);
             };
 
-            node.addEventListener('load', loadFn);
-            node.href = URL.createObjectURL(blob);
+            newNode.addEventListener('load', loadFn);
+            newNode.href = URL.createObjectURL(blob);
           }
         });
       }
